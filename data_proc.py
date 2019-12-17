@@ -8,33 +8,38 @@ import matplotlib.cm as cm
 def get_ks(L_data):
 	'''Takes a panda dataframe from the csv file for the Larsson et al. dataset and returns 
 	three numpy arrays for the kinetic parameters ksyn, koff, kon'''
-	A = L_data
-	burst_size=A.iloc[:,1]
-	burst=[0]*len(burst_size)
+	# Select kinetic parameters column
+	kin_pars=L_data.iloc[:,1]
+	# Initialising array from cleaned kinetic parameters
+	kin_pars_clean=[0]*len(kin_pars)
 
-	for i in range(0,len(burst_size)):
-		burst[i]=burst_size[i][1:-1] #getting rid of brackets
+	# Cleaning strings of leading and trailing brackets
+	for i in range(0,len(kin_pars)):
+		kin_pars_clean[i]=kin_pars[i][1:-1]
  
-	for i in range(0,len(burst)):
-		#creatings a list by splitting up everytime there is a space
-		burst[i]=burst[i].split(' ')
-		burst[i] = list(filter(None, burst[i]))#getting rid of all the empty strings
-		for j in range(0,len(burst[i])):
-			burst[i][j]=float(burst[i][j])#converting string to float
+	for i in range(0,len(kin_pars_clean)):
+		# Creating a list by splitting up everytime there is a space
+		kin_pars_clean[i]=kin_pars_clean[i].split(' ')
+		# Getting rid of all the empty strings
+		kin_pars_clean[i] = list(filter(None, kin_pars_clean[i]))
+		# Converting string to float
+		for j in range(0,len(kin_pars_clean[i])):
+			kin_pars_clean[i][j]=float(kin_pars_clean[i][j])
 
+	# Splitting into three numpy arrays for kinetic parameters
 	kon=[]
 	koff=[]
 	ksyn=[]        
-	for i in range(0,len(burst)):
-		kon.append(burst[i][0])
-		koff.append(burst[i][1])
-		ksyn.append(burst[i][2])
-
+	for i in range(0,len(kin_pars_clean)):
+		kon.append(kin_pars_clean[i][0])
+		koff.append(kin_pars_clean[i][1])
+		ksyn.append(kin_pars_clean[i][2])
 	kon=np.array(kon)
 	koff=np.array(koff)
 	ksyn=np.array(ksyn)
 
-	gene_names = list(A['Gene'])
+	# Getting gene names from dataset
+	gene_names = list(L_data['Gene'])
 
 	return kon, koff, ksyn, gene_names
 
@@ -198,6 +203,67 @@ def plot_burstiness_range(num, ksyn, koff, kon, alpha, beta, time, burstiness, s
 		title = r'Burstiness=' + r'{:.4f}'.format(burstiness) + r', $\alpha$=' + r'{:.2f}'.format(alpha) + r', $\beta=$' + r'{:.2f}'.format(beta)
 		ssa.plot(1, 0, None, k0, 1, kon, koff, 1, plt_mean_variance=False, plt_analytical=False, plt_samples=True, save=True, time=time, title=title, y_lim=75, seed=seed, fontsize=19, axes=False)
 
+####SENSITIVITIES###
+def sensitivies(ksyn, kon, koff, alpha, beta):
+	fpt_cv_sq = 1+((1-beta)*2*alpha**2*beta**3)/((alpha*beta**2+1)**2)
+
+	sensksyn=[]
+	senskon=[]
+	senskoff=[]
+
+	for i in range(0,len(kon)):
+		# Using the sensitivites derived using mathematica
+		sensksyn1=(2*alpha[i]**2*beta[i]**4*kon[i])/(koff[i]*(alpha[i]*beta[i]**2+1)*(2*alpha[i]*beta[i]**2+1+alpha[i]**2*beta[i]**4*(koff[i]+2*kon[i])/koff[i]))
+		sensksyn.append(sensksyn1)
+
+		senskon1=ksyn[i]**2*koff[i]*kon[i]*(kon[i]*koff[i]+(koff[i]-3*kon[i])*(koff[i]+kon[i]))/(((ksyn[i]*koff[i]+(koff[i]+kon[i])**2)**3)*fpt_cv_sq[i])
+		senskon.append(abs(senskon1))
+
+		senskoff1=((ksyn[i]**2*koff[i]*kon[i]*(-koff[i]*(ksyn[i]+3*koff[i])-2*koff[i]*kon[i]+kon[i]**2))/((ksyn[i]*koff[i]+(koff[i]+kon[i])**2)**3*(1+(2*ksyn[i]**2*koff[i]*kon[i])/(ksyn[i]*koff[i]+(koff[i]+kon[i])**2)**2)))
+		senskoff.append(abs(senskoff1))
+
+
+	#########CATEGORISING THE SENSITIVITIES######
+	Lsyn=sensksyn
+	Loff=senskoff
+	Lon=senskon
+
+	ONE=[] #Lsyn>Lon>Loff
+	TWO=[] #Lsyn>Loff>Lon
+	THREE=[] #Lon>Lsyn>Loff
+	FOUR=[] #Lon>Loff>Lsyn
+	FIVE=[] #Loff>Lon>Lsyn
+	SIX=[] #Loff>Lsyn>Lon
+
+	# Split genes by their beta value
+	mostly_off=[] 
+	mostly_on=[] 
+	in_between=[]
+
+	# Placing genes in certain lists that correspond to phases, ranking the sensitivities of each gene
+	for i in range(0, len(sensksyn)):
+		if (Lsyn[i]> Lon[i] and Lon[i]>Loff[i]):
+			ONE.append[i]
+		if (Lsyn[i]> Loff[i] and Loff[i]>Lon[i]):
+			TWO.append[i]
+		if (Lon[i]> Lsyn[i] and Lsyn[i]>Loff[i]):
+			THREE.append(i)
+		if (Lon[i]> Loff[i] and Loff[i]>Lsyn[i]):
+			FOUR.append(i)
+		if (Loff[i]> Lon[i] and Lon[i]>Lsyn[i]):
+			FIVE.append(i)
+		if (Loff[i]>Lsyn[i] and Lsyn[i]>Lon[i]):
+			SIX.append(i)
+		if beta[i]>0.5:
+			mostly_off.append(i)
+		if beta[i]<=0.5:
+			mostly_on.append(i)
+	
+	# Reporting numbers of genes in each regime
+	print("Number of genes in each sensitivity regime: ")
+	print("Lsyn>Lon>Loff: ", len(ONE),", Lsyn>Loff>Lon: ", len(TWO),", Lon>Lsyn>Loff: ", len(THREE),", Lon>Loff>Lsyn: ", len(FOUR), ", Loff>Lon>Lsyn: ", len(FIVE), ", Loff>Lsyn>Lon: ", len(SIX))
+	print("Number of genes in each beta regime: ")
+	print("beta>0.5: ", len(mostly_off), ", beta<=0.5: ", len(mostly_on))   
 
 ### UNCOMMENT TO GENERATE FIGURES
 
@@ -235,3 +301,6 @@ def plot_burstiness_range(num, ksyn, koff, kon, alpha, beta, time, burstiness, s
 
 ## Generate a superset of those plots in figure 11
 #plot_burstiness_range(20, ksyn, koff, kon, alpha, beta, 120, ff_copy_num, seed=1234)
+
+## Generate plots and print data for sensitivies as reported in section 5.5 of accompanying report
+#sensitivies(ksyn, kon, koff, alpha, beta)
