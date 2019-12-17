@@ -203,7 +203,6 @@ def plot_burstiness_range(num, ksyn, koff, kon, alpha, beta, time, burstiness, s
 		title = r'Burstiness=' + r'{:.4f}'.format(burstiness) + r', $\alpha$=' + r'{:.2f}'.format(alpha) + r', $\beta=$' + r'{:.2f}'.format(beta)
 		ssa.plot(1, 0, None, k0, 1, kon, koff, 1, plt_mean_variance=False, plt_analytical=False, plt_samples=True, save=True, time=time, title=title, y_lim=75, seed=seed, fontsize=19, axes=False)
 
-####SENSITIVITIES###
 def sensitivies(ksyn, kon, koff, alpha, beta):
 	fpt_cv_sq = 1+((1-beta)*2*alpha**2*beta**3)/((alpha*beta**2+1)**2)
 
