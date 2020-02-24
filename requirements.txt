@@ -5,7 +5,7 @@ autobahn==19.11.1
 Automat==0.8.0
 backcall==0.1.0
 beautifulsoup4==4.8.1
-bleach==3.1.0
+bleach==3.1.1
 Brlapi==0.6.6
 certifi==2018.1.18
 cffi==1.13.2
