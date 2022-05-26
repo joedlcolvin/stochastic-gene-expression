@@ -124,7 +124,7 @@ terminado==0.8.2
 testpath==0.4.2
 tornado==6.0.3
 traitlets==4.3.3
-Twisted==19.10.0
+Twisted==22.4.0
 txaio==18.8.1
 tzlocal==2.0.0
 ubuntu-drivers-common==0.0.0
